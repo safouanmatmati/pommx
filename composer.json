@@ -1,0 +1,31 @@
+{
+  "name": "safouanmatmati/pommx",
+  "type": "symfony-bundle",
+  "description": "A Symfony bundle to extends the Pomm project with some Doctrine like functionalities.",
+  "keywords": ["orm", "entity", "manager", "symfony", "pomm"],
+  "homepage": "https://github.com/safouanmatmati/pommx",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Safouan MATMATI",
+      "email": "safouan.matmati@gmail.com"
+    }
+  ],
+  "require": {
+    "php": "^7.1.3",
+    "pomm-project/pomm-bundle": "^2.4",
+    "phpdocumentor/reflection-docblock": "^4.3"
+  },
+  "require-dev": {
+  },
+  "suggest": {
+  },
+  "autoload": {
+    "psr-4": {
+      "PommX\\Bundle\\": "sources/bundle/",
+      "PommX\\": "sources/lib/"
+    }
+  },
+  "extra": {
+  }
+}

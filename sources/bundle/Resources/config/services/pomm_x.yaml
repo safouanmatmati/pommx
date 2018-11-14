@@ -1,0 +1,135 @@
+parameters:
+    lib_dir:                                                        '%kernel.project_dir%/../../sources/lib'
+
+services:
+    # default configuration for services in *this* file
+    _defaults:
+        # automatically injects dependencies in your services
+        autowire:                                                   true
+        # automatically registers your services as commands, event subscribers, etc.
+        autoconfigure:                                              true
+        # this means you cannot fetch services directly from the container via $container->get()
+        # if you need to do this, you can override this setting on individual services
+        public:                                                     false
+
+    ## Tools
+    PommX\Tools\:
+        resource:                                                   '%lib_dir%/Tools/*'
+
+    ## Entity property info
+    PommX\PropertyInfo\:
+        resource:                                                   '%lib_dir%/PropertyInfo/*'
+
+    ## Decorates default extractors
+    PommX\PropertyInfo\Extractor\TypeExtractor:
+        class:                                                      PommX\PropertyInfo\Extractor\TypeExtractor
+        decorates:                                                  'pomm.property_type_info'
+        arguments:
+            $extractor: '@PommX\PropertyInfo\Extractor\TypeExtractor.inner'
+
+    ## Replaces default extractors
+    pomm.property_list_info:                                        '@PommX\PropertyInfo\Extractor\ListExtractor'
+
+    ## Replaces this deprecated service, otherwise its called
+    pomm.property_info:                                             '@PommX\PropertyInfo\Extractor\TypeExtractor'
+
+    ## Entity serializer
+    PommX\Serializer\:
+        resource:                                                   '%lib_dir%/Serializer/*'
+
+    PommX\Serializer\EntityNormalizer:
+        class:                                                      PommX\Serializer\EntityNormalizer
+        tags:                                       [{name: 'serializer.normalizer', priority: -1}]
+
+    ## Replaces default pomm serializer
+    pomm.serializer.normalizer:                                     '@PommX\Serializer\EntityNormalizer'
+    pomm.serializer.denormalizer:                                   '@PommX\Serializer\EntityNormalizer'
+
+    ## Alias serializer.mapping.chain_loader
+    Symfony\Component\Serializer\Mapping\Loader\LoaderChain:        '@serializer.mapping.chain_loader'
+
+    ## Entity relation manager
+    PommX\Relation\RelationsManager:
+        class:                                                      PommX\Relation\RelationsManager
+
+    ## Entity mapping properties value manager
+    PommX\MapProperties\MapPropertiesManager:
+        class:                                                      PommX\MapProperties\MapPropertiesManager
+
+    ## Retrieves repository class name from entity class name
+    PommX\Tools\RepositoryClassFinder:
+        class:                                                      PommX\Tools\RepositoryClassFinder
+
+    ## QueryBuilder extensions
+    PommX\Repository\QueryBuilder\Extension\ExtensionsManager:
+        class:                                                      PommX\Repository\QueryBuilder\Extension\ExtensionsManager
+
+    PommX\Repository\QueryBuilder\Extension\Pagination\Pagination:
+        class:                                                      PommX\Repository\QueryBuilder\Extension\Pagination\Pagination
+        tags:                                                       ['pommx.query_builder_extension']
+
+    PommX\Repository\QueryBuilder\Extension\OrderBy:
+        class:                                                      PommX\Repository\QueryBuilder\Extension\OrderBy
+        tags:                                                       ['pommx.query_builder_extension']
+
+    PommX\Repository\QueryBuilder\Extension\GroupBy:
+        class:                                                      PommX\Repository\QueryBuilder\Extension\GroupBy
+        tags:                                                       ['pommx.query_builder_extension']
+
+    ## RepositoryPooler
+    PommX\Repository\RepositoryPooler:
+        class:                                                      PommX\Repository\RepositoryPooler
+        tags: [{ name:                                              pomm.pooler }]
+
+    ## RepositoryLayerPooler
+    PommX\Repository\Layer\RepositoryLayerPooler:
+        class:                                                      PommX\Repository\Layer\RepositoryLayerPooler
+        tags: [{ name:                                              pomm.pooler }]
+
+    ## FetcherManager
+    PommX\Fetch\FetcherManager:
+        class:                                                      PommX\Fetch\FetcherManager
+
+    ## EntityManager
+    PommX\EntityManager\EntityManager:
+        class:                                                      PommX\EntityManager\EntityManager
+
+    PommX\EntityManager\EntityManagerPooler:
+        class:                                                      'PommX\EntityManager\EntityManagerPooler'
+        tags: [{ name:                                              pomm.pooler }]
+
+    ## Session
+    PommX\Session\SessionBuilder:
+        class:                                                      PommX\Session\SessionBuilder
+
+    ## Replaces some Pomm commands to add extra structure informations
+    ## as foreign keys, not null, type enum etc...
+    PommX\Console\Command\GenerateEntity:
+        class:                                                      'PommX\Console\Command\GenerateEntity'
+        decorates:                                                  'pomm.commands.generate_entity'
+        calls:
+            - ['setConfiguration', ['%pomm_x.commands_generator.configuration%']]
+
+    PommX\Console\Command\GenerateStructure:
+        class:                                                      PommX\Console\Command\GenerateStructure
+        decorates:                                                  'pomm.commands.generate_relation_structure'
+        calls:
+            - ['setConfiguration', ['%pomm_x.commands_generator.configuration%']]
+
+    PommX\Console\Command\GenerateRepository:
+        class:                                                      PommX\Console\Command\GenerateRepository
+        decorates:                                                  'pomm.commands.generate_relation_model'
+        calls:
+            - ['setConfiguration', ['%pomm_x.commands_generator.configuration%']]
+
+    PommX\Console\Command\GenerateRelation:
+        class:                                                      PommX\Console\Command\GenerateRelation
+        decorates:                                                  'pomm.commands.generate_for_relation'
+        calls:
+            - ['setConfiguration', ['%pomm_x.commands_generator.configuration%']]
+
+    PommX\Console\Command\GenerateSchema:
+        class:                                                      PommX\Console\Command\GenerateSchema
+        decorates:                                                  'pomm.commands.generate_for_schema'
+        calls:
+            - ['setConfiguration', ['%pomm_x.commands_generator.configuration%']]

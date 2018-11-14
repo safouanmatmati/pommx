@@ -1,0 +1,40 @@
+pomm_x:
+    ## Allows to retrieve repository class name from entity class name
+    ## Patterns depending on "commands_generator" option are automaticly generated
+    # repositories_patterns:
+        ## Custom pattern can be added using fully complete path as:
+        # 'My\Entity\CustomEntity' : 'MyCustom\RepositoryDir\AnotherDir\CustomRepository'
+        ##  Or using custom tags for matching. A tag has to start with "{$" and finish by "}", example :
+        # '{$namespace}\Entity\{$relation}': '{$namespace}\Repository\{$relation}Repository'
+
+    commands_generator:
+        ## full [class name| path file] format example :
+        # [<root_ns> | <root_dir>]/<config_alias>/<schema_dir>{$schema}/<dir>/{$relation}<class_suffix>
+        root_ns:          'App'
+        root_dir:         'src'
+        # config_alias as first letter capitalized
+        config_alias:     '{$config_name}' # {$config_name} as value will be replaced by current config name
+        dir:              ~
+        schema_dir:       'Schema'
+        entity:
+            dir:          'Entity'
+            class_suffix: ~
+            parent_class: 'PommX\Entity\AbstractEntity'
+        repository:
+            dir:          'Repository'
+            class_suffix: 'Repository'
+            parent_class: 'PommX\Repository\AbstractRepository'
+        structure:
+            dir:          'AutoStructure'
+            class_suffix: ~
+            parent_class: 'PommX\Repository\AbstractRowStructure'
+        # configs:
+            # db:
+            #     config_alias: ~
+            #     root_dir: ~
+            #     root_ns: ~
+            #     schema_dir: ~
+            #     dir:    ~
+            #     entity: ~
+            #     repository: ~
+            #     structure: ~
