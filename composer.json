@@ -22,8 +22,8 @@
   },
   "autoload": {
     "psr-4": {
-      "PommX\\Bundle\\": "sources/bundle/",
-      "PommX\\": "sources/lib/"
+      "Pommx\\Bundle\\": "./",
+      "Pommx\\": "./src/"
     }
   },
   "extra": {

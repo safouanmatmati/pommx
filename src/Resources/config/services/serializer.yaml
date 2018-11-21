@@ -1,0 +1,28 @@
+services:
+    # default configuration for services in *this* file
+    _defaults:
+        # automatically injects dependencies in your services
+        autowire:                                            true
+        # automatically registers your services as commands, event subscribers, etc.
+        autoconfigure:                                       true
+        # this means you cannot fetch services directly from the container via $container->get()
+        # if you need to do this, you can override this setting on individual services
+        public:                                              false
+
+    ## Entity serializer
+    Pommx\Serializer\Mapping\Factory\ClassMetadataFactory:
+        class:                                               Pommx\Serializer\Mapping\Factory\ClassMetadataFactory
+
+    Pommx\Serializer\Mapping\Loader\StructureLoader:
+        class:                                               Pommx\Serializer\Mapping\Loader\StructureLoader
+
+    Pommx\Serializer\EntityNormalizer:
+        class:                                               Pommx\Serializer\EntityNormalizer
+        tags:                                       [{name: 'serializer.normalizer', priority: -1}]
+
+    ## Replaces default pomm serializer
+    pomm.serializer.normalizer:                              '@Pommx\Serializer\EntityNormalizer'
+    pomm.serializer.denormalizer:                            '@Pommx\Serializer\EntityNormalizer'
+
+    ## Alias serializer.mapping.chain_loader
+    Symfony\Component\Serializer\Mapping\Loader\LoaderChain: '@serializer.mapping.chain_loader'

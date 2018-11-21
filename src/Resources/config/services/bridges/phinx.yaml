@@ -1,0 +1,43 @@
+services:
+    # default configuration for services in *this* file
+    _defaults:
+        # automatically injects dependencies in your services
+        autowire:                                   true
+        # automatically registers your services as commands, event subscribers, etc.
+        autoconfigure:                              true
+        # this means you cannot fetch services directly from the container via $container->get()
+        # if you need to do this, you can override this setting on individual services
+        public:                                     false
+
+    Pommx\Bridge\Phinx\Console\Command\Breakpoint:
+        class:                                      'Pommx\Bridge\Phinx\Console\Command\Breakpoint'
+        tags:
+            - {name:                                'console.command'}
+
+    Pommx\Bridge\Phinx\Console\Command\Create:
+        class:                                      'Pommx\Bridge\Phinx\Console\Command\Create'
+        tags:                                       ['console.command', 'pommx.phinx.command']
+
+    Pommx\Bridge\Phinx\Console\Command\Migrate:
+        class:                                      'Pommx\Bridge\Phinx\Console\Command\Migrate'
+        tags:                                       ['console.command', 'pommx.phinx.command']
+
+    Pommx\Bridge\Phinx\Console\Command\Rollback:
+        class:                                      'Pommx\Bridge\Phinx\Console\Command\Rollback'
+        tags:                                       ['console.command', 'pommx.phinx.command']
+
+    Pommx\Bridge\Phinx\Console\Command\SeedCreate:
+        class:                                      'Pommx\Bridge\Phinx\Console\Command\SeedCreate'
+        tags:                                       ['console.command', 'pommx.phinx.command']
+
+    Pommx\Bridge\Phinx\Console\Command\SeedRun:
+        class:                                      'Pommx\Bridge\Phinx\Console\Command\SeedRun'
+        tags:                                       ['console.command', 'pommx.phinx.command']
+
+    Pommx\Bridge\Phinx\Console\Command\Status:
+        class:                                      'Pommx\Bridge\Phinx\Console\Command\Status'
+        tags:                                       ['console.command', 'pommx.phinx.command']
+
+    Pommx\Bridge\Phinx\Console\Command\Test:
+        class:                                      'Pommx\Bridge\Phinx\Console\Command\Test'
+        tags:                                       ['console.command', 'pommx.phinx.command']

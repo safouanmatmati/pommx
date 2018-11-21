@@ -1,0 +1,54 @@
+# parameters:
+#   ## Patterns entity <=> repository definition
+#   # Allows to find repository class name from entity class name
+#   # Patterns depending on "commands_generator" option are automaticly generated
+#   repositories_patterns:
+#       # With fully complete path as:
+#       'My\Entity\CustomEntity' :                                  'MyCustom\RepositoryDir\AnotherDir\CustomRepository'
+#
+#       # With tags matching :
+#       '{$namespace}\Entity\{$relation}':                          '{$namespace}\Repository\{$relation}Repository'
+#
+#       # Ex 'My\Entity\CustomEntity' will produce 'My\Repository\CustomEntityRepository'
+#       # Note:                                                     a tag has to start with "{$" and finish by "}"
+
+services:
+    # default configuration for services in *this* file
+    _defaults:
+        # automatically injects dependencies in your services
+        autowire:                                                   true
+        # automatically registers your services as commands, event subscribers, etc.
+        autoconfigure:                                              true
+        # this means you cannot fetch services directly from the container via $container->get()
+        # if you need to do this, you can override this setting on individual services
+        public:                                                     false
+
+    ## Retrieves repository class name from entity class name
+    Pommx\Tools\RepositoryClassFinder:
+        class:                                                      Pommx\Tools\RepositoryClassFinder
+
+    ## QueryBuilder extensions
+    Pommx\Repository\QueryBuilder\Extension\ExtensionsManager:
+        class:                                                      Pommx\Repository\QueryBuilder\Extension\ExtensionsManager
+
+    Pommx\Repository\QueryBuilder\Extension\Pagination\Pagination:
+        class:                                                      Pommx\Repository\QueryBuilder\Extension\Pagination\Pagination
+        tags:                                                       ['pommx.query_builder_extension']
+
+    Pommx\Repository\QueryBuilder\Extension\OrderBy:
+        class:                                                      Pommx\Repository\QueryBuilder\Extension\OrderBy
+        tags:                                                       ['pommx.query_builder_extension']
+
+    Pommx\Repository\QueryBuilder\Extension\GroupBy:
+        class:                                                      Pommx\Repository\QueryBuilder\Extension\GroupBy
+        tags:                                                       ['pommx.query_builder_extension']
+
+    ## RepositoryPooler
+    Pommx\Repository\RepositoryPooler:
+        class:                                                      Pommx\Repository\RepositoryPooler
+        tags: [{ name:                                              pomm.pooler }]
+
+    ## RepositoryLayerPooler
+    Pommx\Repository\Layer\RepositoryLayerPooler:
+        class:                                                      Pommx\Repository\Layer\RepositoryLayerPooler
+        tags: [{ name:                                              pomm.pooler }]
