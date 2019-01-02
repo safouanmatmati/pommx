@@ -69,6 +69,68 @@ class Manager extends PhinxManager
     }
 
     /**
+     * Display "file not found" message.
+     *
+     * {@inheritdoc}
+     *
+     * @return string[]
+     */
+    protected function getSeedFiles()
+    {
+        $config = $this->getConfig();
+        $paths  = $config->getSeedPaths();
+        $files  = parent::getSeedFiles();
+
+        if (true == empty($files)) {
+            $this->displayFileNotFound($paths, 'seed file');
+        }
+
+        return $files;
+    }
+
+    /**
+     * Display "file not found" message.
+     *
+     * {@inheritdoc}
+     *
+     * @return string[]
+     */
+    protected function getMigrationFiles()
+    {
+        $config = $this->getConfig();
+        $paths  = $config->getMigrationPaths();
+        $files  = parent::getMigrationFiles();
+
+        if (true == empty($files)) {
+            $this->displayFileNotFound($paths, 'migration file');
+        }
+
+        return $files;
+    }
+
+    /**
+     * Display message indicating that no file was found, if it's the case.
+     *
+     * @param string[]  $paths [description]
+     * @param string $type  [description]
+     */
+    private function displayFileNotFound(array $paths, string $type): void
+    {
+        $this->getOutput()->writeln(
+            sprintf(
+                '<comment>No %s found in following folders </comment>:',
+                $type
+            )
+        );
+
+        foreach ($paths as $path) {
+            $this->getOutput()->writeln(
+                sprintf('- <comment>%s</comment>', $path)
+            );
+        }
+    }
+
+    /**
      * Set pomm instance to migrations implementing PommAwareInterface interface.
      *
      * {@inheritdoc}

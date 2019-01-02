@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Pommx\Session;
 
-use PommProject\Foundation\Session as PommSession;
+use PommProject\ModelManager\Session as PommSession;
 
 use Pommx\Repository\AbstractRepository;
 
@@ -34,7 +34,7 @@ class Session extends PommSession
     /**
      * Replaces default model layer pooler call by repository layer pooler call.
      * Return the repository layer client.
-     * 
+     *
      * @param   string $identifier
      * @return  AbstractRepository
      */

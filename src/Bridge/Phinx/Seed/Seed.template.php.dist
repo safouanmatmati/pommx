@@ -1,0 +1,42 @@
+<?php
+
+/*
+ * This file was generated from Pommx package.
+ */
+
+declare(strict_types=1);
+
+$namespaceDefinition
+
+use {$base_namespace} as BaseSeed;
+
+class $className extends BaseSeed
+{
+    /**
+     * Returns list of schemas names allowed.
+     *
+     * @var string[]
+     */
+    protected function getSchemasNames(): array
+    {
+        return ['{$schema}'];
+    }
+
+    /**
+     * Run Method.
+     *
+     * Write your database seeder using this method.
+     *
+     * More information on writing seeders is available here:
+     * http://docs.phinx.org/en/latest/seeding.html
+     */
+    public function run()
+    {
+        parent::run();
+
+        // Define schema
+        $this->useSchema('{$schema}');
+
+        // Your code here
+    }
+}

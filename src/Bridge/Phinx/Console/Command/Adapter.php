@@ -27,6 +27,7 @@ use Pommx\Bridge\Phinx\Console\Command\Configuration;
 
 trait Adapter
 {
+    private $name_prefix = 'pommx:database';
      /**
      * [$pomm description]
      *
@@ -35,10 +36,28 @@ trait Adapter
     private $pomm;
 
     /**
-     * [private description]
+     * Pommx configurations
      * @var array
      */
     private $configs;
+
+    /**
+     * Current Pommx migration configuration
+     * @var Configuration
+     */
+   private $migration_configuration;
+
+    /**
+     *  Current Pommx seed configuration
+     * @var Configuration
+     */
+    private $seed_configuration;
+
+    /**
+     * [private description]
+     * @var bool
+     */
+    private $use_custom_template = false;
 
     public function setPommxConfigs(Pomm $pomm, array $configs)
     {
@@ -72,15 +91,20 @@ trait Adapter
         $help = str_replace('phinx', '', $this->getHelp());
 
         // Replace "-e development" by <config-name> references
-        $help = str_replace('-e development', '<config-name>', $this->getHelp());
+        $help = str_replace('-e development', '<config-name> <schema>', $this->getHelp());
 
         // Prefix name references by "pommx:phinx:"
-        $help = str_replace($this->getName(), "pommx:phinx:{$this->getName()}", $help);
+        $help = str_replace('phinx ', "{$this->name_prefix}:", $help);
+
+        $help = <<<EOT
+$help
+--------------------------------------------------------------------------------------------
+You can <comment>custom directories, namespaces & parent class</comment> of your migration & seed files.
+Use Pommx package configuration file. See <comment>bin/console config:dump-reference pommx</comment> for more details.
+
+EOT;
 
         $this->setHelp($help);
-
-        // Prefix name by "pommx:phinx:"
-        $this->setName("pommx:phinx:".$this->getName());
 
         $definition = [];
 
@@ -102,6 +126,32 @@ trait Adapter
         }
 
         $this->setDefinition($definition);
+
+        $this->postConfigure();
+    }
+
+    /**
+     * [postConfigure description]
+     * @return self
+     */
+    protected function postConfigure(): self
+    {
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     * Overload setName to prefix name automaticly.
+     *
+     * @param string $name
+     * @return self
+     */
+    public function setName($name)
+    {
+        // Prefix name
+        parent::setName(sprintf('%s:%s', $this->name_prefix, $name));
+
+        return $this;
     }
 
     /**
@@ -109,11 +159,42 @@ trait Adapter
      */
      protected function execute(InputInterface $input, OutputInterface $output)
      {
-        // Restore <environment> option, as it needed internal by Phinx.
+        // Restore <environment> option, as it's needed internaly by Phinx.
         // Set its value as <config-name> argument value
         $this->addOption('environment', null, InputOption::VALUE_REQUIRED, '', $input->getArgument('config-name'));
 
+        $this->preExecute($input, $output);
+
         parent::execute($input, $output);
+    }
+
+    /**
+     * Set migration and seed configuration depending on choosen config.
+     *
+     * @param  InputInterface  $input
+     * @param  OutputInterface $output
+     * @return self
+     */
+    protected function preExecute(InputInterface $input, OutputInterface $output): self
+    {
+        $config_name = $input->getArgument('config-name');
+
+        if (false == array_key_exists($config_name, $this->configs)) {
+            throw new \InvalidArgumentException(
+                sprintf(
+                    '"%s" Pommx config name doesn\'t exists.'.PHP_EOL
+                    .'Existing configs are {"%s"}',
+                    $config_name,
+                    join('", "', array_keys($this->configs))
+                )
+            );
+        }
+
+        $this
+            ->setPommxMigrationConf(new Configuration($this->configs, $config_name, 'migrations'))
+            ->setPommxSeedConf(new Configuration($this->configs, $config_name, 'seeds'));
+
+        return $this;
     }
 
     /**
@@ -142,17 +223,17 @@ trait Adapter
         ];
 
         // Paths
-        $migrations_config = new Configuration($this->configs, $config_name, 'migrations');
-        $seeds_config      = new Configuration($this->configs, $config_name, 'seeds');
+        $migrations_config = $this->getPommxMigrationConf();
+        $seeds_config      = $this->getPommxSeedConf();
 
         $phinx_conf['paths'] = [
             'migrations' => [
                 $migrations_config->getNamespace($input->getArgument('schema')) =>
-                    $migrations_config->getPathFile($input->getArgument('schema'))
+                    $migrations_config->getDirPath($input->getArgument('schema'))
             ],
             'seeds' => [
                 $seeds_config->getNamespace($input->getArgument('schema')) =>
-                    $seeds_config->getPathFile($input->getArgument('schema'))
+                    $seeds_config->getDirPath($input->getArgument('schema'))
             ]
         ];
 
@@ -163,12 +244,12 @@ trait Adapter
         // we retrieve it from selected Pommx configuration (eq. "config_name" argument).
         $connection = $this->pomm->getSession($config_name)->getConnection();
         $reflection = new \ReflectionClass($connection);
-        $property = $reflection->getProperty('configurator');
+        $property   = $reflection->getProperty('configurator');
         $property->setAccessible(true);
         $configurator = $property->getValue($connection);
 
         $reflection = new \ReflectionClass($configurator);
-        $property = $reflection->getProperty('configuration');
+        $property   = $reflection->getProperty('configuration');
         $property->setAccessible(true);
 
         $configuration = $property->getValue($configurator);
@@ -186,11 +267,11 @@ trait Adapter
             'default_database'        => $config_name,
             $config_name => [
                 'adapter' => $configuration->getParameter('adapter'),
-                'host' => $configuration->getParameter('host'),
-                'name' => $configuration->getParameter('database'),
-                'user' => $configuration->getParameter('user'),
-                'pass' => $configuration->getParameter('pass'),
-                'port' => $configuration->getParameter('port')
+                'host'    => $configuration->getParameter('host'),
+                'name'    => $configuration->getParameter('database'),
+                'user'    => $configuration->getParameter('user'),
+                'pass'    => $configuration->getParameter('pass'),
+                'port'    => $configuration->getParameter('port')
             ]
         ];
 
@@ -207,6 +288,105 @@ trait Adapter
         if (true == is_null($manager = $this->getManager()) || false == is_a($manager, Manager::class)) {
             $manager = new Manager($this->pomm, $this->getConfig(), $input, $output);
             $this->setManager($manager);
+        }
+    }
+
+    /**
+     * Returns the migration template filename.
+     *
+     * @return string
+     */
+    protected function getMigrationTemplateFilename()
+    {
+        $template = $this->use_custom_template
+            ? 'Migration.custom.template.php.dist'
+            : 'Migration.template.php.dist';
+
+        return __DIR__
+            .DIRECTORY_SEPARATOR
+            .join(DIRECTORY_SEPARATOR, ['..', '..', 'Migration', $template]);
+    }
+
+    /**
+     * Returns the seed template filename.
+     *
+     * @return string
+     */
+    protected function getSeedTemplateFilename()
+    {
+        $template = $this->use_custom_template
+            ? 'Seed.custom.template.php.dist'
+            : 'Seed.template.php.dist';
+
+        return __DIR__
+            .DIRECTORY_SEPARATOR
+            .join(DIRECTORY_SEPARATOR, ['..', '..', 'Seed', $template]);
+    }
+
+    /**
+     * [useCustomTemplate description]
+     * @param bool $use_custom_template
+     */
+    protected function useCustomTemplate(bool $use_custom_template): void
+    {
+        $this->use_custom_template = $use_custom_template;
+    }
+
+    /**
+     * [getPommxMigrationConf description]
+     * @param  Configuration $configuration
+     * @return self
+     */
+    protected function setPommxMigrationConf(Configuration $configuration): self
+    {
+        $this->migration_configuration = $configuration;
+        return $this;
+    }
+
+    /**
+     * [setPommxMigrationConf description]
+     * @return Configuration
+     */
+    protected function getPommxMigrationConf(): Configuration
+    {
+        return $this->migration_configuration;
+    }
+
+    /**
+     * [setPommxSeedConf description]
+     * @param  Configuration $configuration
+     * @return self
+     */
+    protected function setPommxSeedConf(Configuration $configuration): self
+    {
+        $this->seed_configuration = $configuration;
+        return $this;
+    }
+
+    /**
+     * [getPommxSeedConf description]
+     * @return Configuration
+     */
+    protected function getPommxSeedConf(): Configuration
+    {
+        return $this->seed_configuration;
+    }
+
+    /**
+     * [hasMethodImplemented description]
+     * @param  string $method
+     * @param  string $class
+     * @return bool
+     */
+    protected function hasMethodImplemented(string $method, string $class): bool
+    {
+        $reflection = new \ReflectionClass($class);
+
+        try {
+            $method = $reflection->getMethod($method);
+            return !$method->isAbstract();
+        } catch (\Exception $e) {
+            return false;
         }
     }
 }

@@ -11,13 +11,11 @@
 
 declare(strict_types=1);
 
-namespace Pommx\Bridge\Phinx\Console\Command;
+namespace Pommx\DependencyInjection;
 
-use Phinx\Console\Command\Test as PhinxTest;
+use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 
-use Pommx\Bridge\Phinx\Console\Command\Adapter;
-
-class Test extends PhinxTest
+interface BridgeConfigurationInterface
 {
-    use Adapter;
+    public function appendConfiguration(TreeBuilder $tree_builder);
 }

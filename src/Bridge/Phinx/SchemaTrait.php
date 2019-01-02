@@ -50,7 +50,7 @@ trait SchemaTrait
     }
 
     /**
-     * Checks schema ame validity.
+     * Checks schema name validity.
      *
      * @param  string $name
      * @throws \LogicException type
@@ -61,7 +61,7 @@ trait SchemaTrait
             throw new \LogicException(
                 sprintf(
                     '"%s" is not a valid schema.'.PHP_EOL
-                    . 'Only ["%s"] are allowed.',
+                    . 'Only {"%s"} schemas are allowed.',
                     $name,
                     implode('", "', $this->getSchemasNames())
                 )

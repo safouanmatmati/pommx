@@ -25,9 +25,9 @@ trait DebugTrait
      */
     private function debugInfoMasked(array $mask): array
     {
-        $ref_class = new InheritedReflectionClass($this);
-        $ref_object = new \ReflectionObject($this);
-        $class = $ref_object->getName();
+        $ref_class      = new InheritedReflectionClass($this);
+        $ref_object     = new \ReflectionObject($this);
+        $class          = $ref_object->getName();
 
         $ref_class_prop = [];
         foreach ($ref_class->getProperties() as $property) {

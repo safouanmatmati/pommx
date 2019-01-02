@@ -13,22 +13,19 @@ declare(strict_types=1);
 
 namespace Pommx\Console\Command;
 
-use PommProject\Cli\Command\RelationAwareCommand;
-use PommProject\Foundation\ParameterHolder;
-
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-use Pommx\Console\Command\Traits\InspectorPoolerAwareCommand;
-use Pommx\Console\Command\Traits\Definition;
+use PommProject\Cli\Command\RelationAwareCommand;
 
-use Pommx\Generator\StructureGenerator;
+use Pommx\Console\Command\PommxAwareCommandInterface;
+use Pommx\Console\Command\Traits\PommxAwareCommandTrait;
+use Pommx\Console\Command\Traits\Generator;
 
-class GenerateStructure extends RelationAwareCommand
+class GenerateStructure extends RelationAwareCommand implements PommxAwareCommandInterface
 {
-    use InspectorPoolerAwareCommand;
-    use Definition;
+    use PommxAwareCommandTrait;
+    use Generator;
 
     /**
      * {@inheritdoc}
@@ -39,9 +36,9 @@ class GenerateStructure extends RelationAwareCommand
 
         $this
             ->setName('pommx:generate:structure')
-            ->setDescription('Generate a RowStructure file based on table schema.');
+            ->setDescription('Generate a new structure class based on table schema.');
 
-        $this->overrideDefinition();
+        $this->adapte();
     }
 
     /**
@@ -49,38 +46,10 @@ class GenerateStructure extends RelationAwareCommand
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $this->addRequiredParentOptions();
+        $this->preExecute();
 
         parent::execute($input, $output);
 
-        $this->mustBeModelManagerSession($this->getSession());
-
-        $configuration = $this->getConfiguration(
-            $input->getArgument('config_name'),
-            'structure'
-        );
-
-        $infos = $configuration->getFileInfos($this->schema, $this->relation);
-
-        $this->updateOutput(
-            $output,
-            (new StructureGenerator(
-                $this->getSession(),
-                $this->schema,
-                $this->relation,
-                $infos['path_file'],
-                $infos['namespace']
-            ))->generate(
-                new ParameterHolder(
-                    array_merge(
-                        $input->getArguments(),
-                        [
-                          'entity'       => $infos['short_name'],
-                          'parent_class' => $configuration->getValue('parent_class')
-                        ]
-                    )
-                )
-            )
-        );
+        $this->generateStructure($input, $output);
     }
 }

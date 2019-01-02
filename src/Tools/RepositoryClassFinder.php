@@ -15,6 +15,8 @@ namespace Pommx\Tools;
 
 use Pommx\Tools\Exception\ExceptionManagerInterface;
 
+//TODO store patterns by pomm session name
+
 class RepositoryClassFinder
 {
     /**
@@ -26,9 +28,9 @@ class RepositoryClassFinder
     /**
      * [private description]
      *
-     * @var array
+     * @var array[]
      */
-    private $patterns;
+    private $patterns = [];
 
     /**
      *
@@ -55,10 +57,10 @@ class RepositoryClassFinder
     public function addPattern(string $entity_class_pattern, string $repo_class_pattern): self
     {
         // Remove all "\" at the end
-        $repo_class_pattern = rtrim($repo_class_pattern, '\\');
+        $repo_class_pattern   = rtrim($repo_class_pattern, '\\');
         $entity_class_pattern = rtrim($entity_class_pattern, '\\');
 
-        if (true == isset($this->patterns[$entity_class_pattern])) {
+        if (true == $this->hasPattern($entity_class_pattern)) {
             $this->exception_manager->throw(
                 self::class,
                 __LINE__,
@@ -74,6 +76,7 @@ class RepositoryClassFinder
             'repository' => ['pattern' => $repo_class_pattern, 'needles' => []],
             'entity'     => ['pattern' => $entity_class_pattern, 'needles' => []],
         ];
+
         foreach ($patterns as $type => $data) {
             if (false === preg_match_all('/(?<needles>{[$][^}]+})/', $data['pattern'], $res)) {
                 $this->exception_manager->throw(
@@ -103,7 +106,7 @@ class RepositoryClassFinder
                 sprintf(
                     'Failed to add pattern.'.PHP_EOL
                     .'Patterns aren\'t valid.'.PHP_EOL
-                    .'"%s" needles have be used by repository pattern and entity pattern.'.PHP_EOL
+                    .'"%s" needles have to be used by repository pattern and entity pattern.'.PHP_EOL
                     .'Modify "%s" entity pattern or "%s" repository pattern.',
                     join('", "', $diff),
                     $entity_class_pattern,
@@ -114,9 +117,9 @@ class RepositoryClassFinder
 
         $this->patterns[$entity_class_pattern] = [
             'repo_class_pattern' => $repo_class_pattern,
-            'repo_needles' => $patterns['repository']['needles'],
-            'entity_needles' => $patterns['entity']['needles'],
-            'parts' => []
+            'repo_needles'       => $patterns['repository']['needles'],
+            'entity_needles'     => $patterns['entity']['needles'],
+            'parts'              => []
         ];
 
         $cleaned_entity = preg_replace('/(?<needles>{[$][^}]+})/', '|', $entity_class_pattern);
@@ -144,10 +147,9 @@ class RepositoryClassFinder
     }
 
     /**
-     * Returns repository class path based on $repo_class_pattern
+     * Returns repository class path based on registered patterns.
      *
-     * If $entity_class_pattern is defined, its needles, as {$my_needle},
-     * are replaced by their corresponding value based on $class parameter.
+     * Needles (eq {$my_needle}) are replaced by their corresponding value based on $class parameter.
      * Each value is then injected on $repo_class_pattern to generated final repository class path.
      *
      * Ex:
@@ -165,13 +167,23 @@ class RepositoryClassFinder
             return $this->repositories_classes[$class];
         }
 
+        if (true == empty($this->patterns)) {
+            throw new \LogicException(
+                sprintf(
+                    'Failed to retrieve repository class for "%s" entity class.'.PHP_EOL
+                    .'Pattern expected, no one found.'.PHP_EOL
+                    .'Did your Pommx extension well loaded ?',
+                    $class
+                )
+            );
+        }
+
         do {
             $pattern = current($this->patterns);
 
-            $index = -1;
+            $index   = -1;
             $founded = $correspondences = [];
-
-            $string = $class;
+            $string  = $class;
 
             foreach ($pattern['parts'] as $part) {
                 if (false === ($pos = strpos($string, $part))) {
@@ -225,8 +237,14 @@ class RepositoryClassFinder
         return $this->repositories_classes[$class];
     }
 
-    public function hasPattern(string $class): bool
+    /**
+     * Check if a pattern is registered.
+     *
+     * @param  string $entity_class_pattern [description]
+     * @return bool          [description]
+     */
+    public function hasPattern(string $entity_class_pattern): bool
     {
-        return array_key_exists($class, $this->patterns);
+        return array_key_exists($entity_class_pattern, $this->patterns);
     }
 }

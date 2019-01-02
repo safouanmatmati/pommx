@@ -14,30 +14,48 @@ declare(strict_types=1);
 namespace Pommx\DependencyInjection;
 
 use Symfony\Component\Config\FileLocator;
-use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\HttpKernel\DependencyInjection\Extension;
-use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
-use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
+use Symfony\Component\Config\Loader\LoaderInterface;
+use Symfony\Component\Config\Loader\LoaderResolver;
+use Symfony\Component\Config\Loader\DelegatingLoader;
 use Symfony\Component\Config\Definition\Dumper\YamlReferenceDumper;
+use Symfony\Component\HttpKernel\DependencyInjection\Extension;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
+use Symfony\Component\DependencyInjection\Loader\GlobFileLoader;
+use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 
 use Pommx\DependencyInjection\Configuration;
+use Pommx\DependencyInjection\BridgeConfigurationInterface;
+use Pommx\DependencyInjection\Compiler\PassInterface;
 use Pommx\Session\SessionBuilder;
 
 class PommxExtension extends Extension implements PrependExtensionInterface
 {
     /**
-     * [$pommx_config_names description]
+     * [$pommx_sessions description]
      *
      * @var array
      */
-    private $pommx_config_names;
+    private $pommx_sessions;
 
     /**
-     * [$extension_config description]
+     * [$sessions description]
      *
      * @var array
      */
-    private $extension_config;
+    private $sessions_configurations;
+
+    /**
+     * [private description]
+     * @var array
+     */
+    private $pomm_configuration;
+
+    /**
+     * [private description]
+     * @var Configuration
+     */
+    private $configuration;
 
     /**
      * Add Pommx session builder if no one exists.
@@ -57,7 +75,9 @@ class PommxExtension extends Extension implements PrependExtensionInterface
             $define_pommx_session = $define_as_default = true;
 
             foreach ($container->getExtensionConfig($extension->getAlias()) as $extension) {
-                foreach ($extension['configuration'] as $name => $config) {
+                $configurations = $extension['configuration'] ?? [];
+
+                foreach ($configurations as $name => $config) {
                     $session_builder = $config['session_builder'] ?? null;
 
                     // A Pommx builer session is already defined
@@ -69,7 +89,7 @@ class PommxExtension extends Extension implements PrependExtensionInterface
                         $define_pommx_session = false;
 
                         // Register it as a Pommx builder session
-                        $this->pommx_config_names[] = $name;
+                        $this->pommx_sessions[$name] = [];
                         continue;
                     }
 
@@ -90,7 +110,7 @@ class PommxExtension extends Extension implements PrependExtensionInterface
                   ]
                 ];
 
-                $this->pommx_config_names[] = 'pommx.db';
+                $this->pommx_sessions['pommx.db'] = [];
 
                 // Add it to Pomm extension
                 $container->prependExtensionConfig('pomm', ['configuration' => $configurations]);
@@ -101,6 +121,9 @@ class PommxExtension extends Extension implements PrependExtensionInterface
                 .'It require Pomm bundle to be registered first.'
             );
         }
+
+        // Add Pommx sessions to extension config
+        $container->prependExtensionConfig('pommx', ['sessions' => $this->pommx_sessions]);
     }
 
     /**
@@ -108,33 +131,20 @@ class PommxExtension extends Extension implements PrependExtensionInterface
      */
     public function load(array $configs, ContainerBuilder $container)
     {
-        $loader = new YamlFileLoader(
-            $container,
-            new FileLocator(__DIR__.'/../Resources/config')
+        $config = $this->processConfiguration(
+            $this->getConfiguration($configs, $container),
+            $configs
         );
 
-        $loader->load('services/commands.yaml');
-        $loader->load('services/entity.yaml');
-        $loader->load('services/property_info.yaml');
-        $loader->load('services/repository.yaml');
-        $loader->load('services/serializer.yaml');
-        $loader->load('services/session.yaml');
-        $loader->load('services/tools.yaml');
+        // Load bridges services only if they are enabled
+        $loader = $this->getLoader($container, __DIR__.'/../');
 
-        $conf = new Configuration();
-
-        // $dumper = new YamlReferenceDumper();
-        // var_dump($dumper->dump($conf));die(__METHOD__);
-
-        $config = $this->processConfiguration($conf, $configs);
-
-        foreach ($config as $configuration) {
-            if (true === ($configuration['api_platform']['enable'] ?? false)) {
-                $loader->load('services/bridges/api_platform.yaml');
-            }
-
-            if (true === ($configuration['commands']['phinx']['enable'] ?? false)) {
-                $loader->load('services/bridges/phinx.yaml');
+        foreach ($config['bridges'] as $name => $bridge) {
+            if (true === ($bridge['enable'] ?? false)) {
+                $loader->load(
+                    sprintf('Bridge/*/Resources/config/%s.{yaml,yml}', $name),
+                    'glob'
+                );
             }
         }
 
@@ -146,21 +156,83 @@ class PommxExtension extends Extension implements PrependExtensionInterface
      */
     public function configure(array $config, ContainerBuilder $container)
     {
-        // Remove unused configurations
-        $extension_config = array_intersect_key(
-            $config, array_flip($this->pommx_config_names)
+        // Remove useless configurations
+        $sessions_configurations = array_intersect_key(
+            $config['sessions'] ?? [], $this->pommx_sessions
         );
 
-        $this->extension_config = $extension_config;
+        $this->sessions_configurations = $sessions_configurations;
+        $this->pomm                    = $config['pomm'];
+        $this->bridges                 = $config['bridges'];
     }
 
-    public function getConfs(): array
+    public function getSessions(): array
     {
-        return $this->extension_config;
+        return $this->sessions_configurations;
     }
 
-    public function setConf(string $name, array $extension_config): void
+    public function setSessions(string $name, array $session_configuration): void
     {
-        $this->extension_config[$name] = $extension_config;
+        $this->sessions_configurations[$name] = $session_configuration;
+    }
+
+    public function getPommConfiguration(): array
+    {
+        return $this->pomm;
+    }
+
+    public function getBridgeConfiguration(string $bridge_name): array
+    {
+        return $this->bridges[$bridge_name];
+    }
+
+    public function getLoader(ContainerBuilder $container, string $path): LoaderInterface
+    {
+        $file_locator    = new FileLocator($path);
+        $global_loader   = new GlobFileLoader($container, $file_locator);
+        $yaml_loader     = new YamlFileLoader($container, $file_locator);
+        $loader_resolver = new LoaderResolver([$global_loader, $yaml_loader]);
+
+        return new DelegatingLoader($loader_resolver);
+    }
+
+    public function getConfiguration(array $config, ContainerBuilder $container)
+    {
+        if (false == is_null($this->configuration)) {
+            return $this->configuration;
+        }
+
+        $loader = $this->getLoader($container, __DIR__.'/../');
+
+        $loader->load('Resources/config/dependency_injection/*.{yaml,yml}', 'glob');
+        $loader->load('Resources/config/services/*.{yaml,yml}', 'glob');
+        $loader->load('Bridge/*/Resources/config/dependency_injection.{yaml,yml}', 'glob');
+
+        // Add bridges configurations definitions to the main configuration definition
+        $bridges = [];
+
+        foreach ($container->findTaggedServiceIds('pommx.di.bridge.configuration') as $id => $tags) {
+            $definition = $container->getDefinition($id);
+
+            if (is_subclass_of($definition->getClass(), BridgeConfigurationInterface::class)) {
+               $bridges[$id] = $container->get($id);
+           } else {
+               throw new \LogicException(
+                   sprintf(
+                       '"%s", as a dependency injection bridge configuration, has to implement "%s" interface.',
+                       $id,
+                       BridgeConfigurationInterface::class
+                   )
+               );
+           }
+        }
+
+        // $dumper = new YamlReferenceDumper();
+        // var_dump($dumper->dump($conf));die(__METHOD__);
+
+        // Main configuration definition
+        $configuration = new Configuration($bridges);
+        // var_dump($configuration->getConfigTreeBuilder()->buildTree()->getDefaultValue());
+        return $this->configuration = $configuration;
     }
 }

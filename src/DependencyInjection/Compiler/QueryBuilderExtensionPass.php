@@ -17,9 +17,10 @@ use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Reference;
 
+use Pommx\DependencyInjection\Compiler\AbstractPass;
 use Pommx\Repository\QueryBuilder\Extension\ExtensionsManager;
 
-class QueryBuilderExtensionPass implements CompilerPassInterface
+class QueryBuilderExtensionPass extends AbstractPass implements CompilerPassInterface
 {
     public function process(ContainerBuilder $container)
     {

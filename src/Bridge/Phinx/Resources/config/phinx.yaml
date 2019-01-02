@@ -37,7 +37,3 @@ services:
     Pommx\Bridge\Phinx\Console\Command\Status:
         class:                                      'Pommx\Bridge\Phinx\Console\Command\Status'
         tags:                                       ['console.command', 'pommx.phinx.command']
-
-    Pommx\Bridge\Phinx\Console\Command\Test:
-        class:                                      'Pommx\Bridge\Phinx\Console\Command\Test'
-        tags:                                       ['console.command', 'pommx.phinx.command']

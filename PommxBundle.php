@@ -15,34 +15,46 @@ namespace Pommx\Bundle;
 
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Compiler\PassConfig;
 
 use Pommx\DependencyInjection\PommxExtension;
-use Pommx\DependencyInjection\Compiler\CommandGeneratorPass;
-use Pommx\DependencyInjection\Compiler\RepositoryClassFinderPass;
-use Pommx\DependencyInjection\Compiler\QueryBuilderExtensionPass;
-use Pommx\DependencyInjection\Compiler\PhinxPass;
+use Pommx\DependencyInjection\Compiler\PassInterface;
 
 class PommxBundle extends Bundle
 {
+    /**
+     * [protected description]
+     * @var PommxExtension
+     */
     protected $extension;
 
-    /**
-     * build
-     *
-     * @see Bundle
-     */
     public function build(ContainerBuilder $container)
     {
         parent::build($container);
 
-        $container->addCompilerPass(new CommandGeneratorPass($this->getContainerExtension()));
+        $loader = $this->getContainerExtension()->getLoader($container, __DIR__.'/src/');
 
-        $container->addCompilerPass(new RepositoryClassFinderPass($this->getContainerExtension()));
+        $loader->load('Resources/config/dependency_injection/*.{yaml,yml}', 'glob');
+        $loader->load('Resources/config/services/*.{yaml,yml}', 'glob');
+        $loader->load('Bridge/*/Resources/config/dependency_injection.{yaml,yml}', 'glob');
 
-        $container->addCompilerPass(new QueryBuilderExtensionPass($this->getContainerExtension()));
+        // Add dependency injection compiler pass
+        foreach ($container->findTaggedServiceIds('pommx.di.pass') as $id => $tags) {
+            $definition = $container->getDefinition($id);
 
-        $container->addCompilerPass(new PhinxPass($this->getContainerExtension()));
+            if (true == is_subclass_of($definition->getClass(), PassInterface::class)) {
+               $pass = $container->get($id);
+               $pass->setPommxExtension($this->getContainerExtension());
+               $container->addCompilerPass($pass);
+           } else {
+               throw new \LogicException(
+                   sprintf(
+                       '"%s", as dependency injection compiler pass, has to implement "%s" interface.',
+                       $id,
+                       PassInterface::class
+                   )
+               );
+           }
+        }
     }
 
     /**

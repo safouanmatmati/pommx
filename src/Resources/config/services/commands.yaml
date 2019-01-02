@@ -13,20 +13,40 @@ services:
     ## as foreign keys, not null, type enum etc...
     Pommx\Console\Command\GenerateEntity:
         class:                                 'Pommx\Console\Command\GenerateEntity'
-        tags:                                  ['console.command', 'pommx.command']
+        tags:                                  ['console.command']
+        calls:
+            - method:                          'setReplacedCommandClass'
+              arguments:
+                  - 'PommProject\Cli\Command\GenerateEntity'
 
     Pommx\Console\Command\GenerateStructure:
         class:                                 Pommx\Console\Command\GenerateStructure
-        tags:                                  ['console.command', 'pommx.command']
+        tags:                                  ['console.command']
+        calls:
+            - method:                          'setReplacedCommandClass'
+              arguments:
+                  - 'PommProject\Cli\Command\GenerateRelationStructure'
 
     Pommx\Console\Command\GenerateRepository:
         class:                                 Pommx\Console\Command\GenerateRepository
-        tags:                                  ['console.command', 'pommx.command']
+        tags:                                  ['console.command']
+        calls:
+            - method:                          'setReplacedCommandClass'
+              arguments:
+                  - 'PommProject\Cli\Command\GenerateRelationModel'
 
     Pommx\Console\Command\GenerateRelation:
         class:                                 Pommx\Console\Command\GenerateRelation
-        tags:                                  ['console.command', 'pommx.command']
+        tags:                                  ['console.command']
+        calls:
+            - method:                          'setReplacedCommandClass'
+              arguments:
+                  - 'PommProject\Cli\Command\GenerateForRelation'
 
     Pommx\Console\Command\GenerateSchema:
         class:                                 Pommx\Console\Command\GenerateSchema
-        tags:                                  ['console.command', 'pommx.command']
+        tags:                                  ['console.command']
+        calls:
+            - method:                          'setReplacedCommandClass'
+              arguments:
+                  - 'PommProject\Cli\Command\GenerateForSchema'

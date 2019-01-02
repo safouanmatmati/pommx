@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace Pommx\Bridge\Phinx;
+namespace Pommx\Bridge\Phinx\Seed;
 
 use Phinx\Seed\AbstractSeed as PhinxAbstractSeed;
 use Phinx\Db\Table;
@@ -35,7 +35,7 @@ abstract class AbstractSeed extends PhinxAbstractSeed implements PommAwareInterf
     private $tables;
 
     /**
-     * Filter data with table columns definition
+     * Filter data with table columns definition.
      *
      * @param  Table $table
      * @param  array $data
@@ -54,10 +54,9 @@ abstract class AbstractSeed extends PhinxAbstractSeed implements PommAwareInterf
         return $filtered;
     }
 
-
     /**
      * {@inheritdoc}
-     * Add data filtering
+     * Add data filtering.
      *
      * @param  Table $table
      * @param  array $data

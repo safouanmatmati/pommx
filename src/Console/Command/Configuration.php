@@ -13,71 +13,10 @@ declare(strict_types=1);
 
 namespace Pommx\Console\Command;
 
-class Configuration
+use Pommx\Console\Command\AbstractConfiguration;
+
+class Configuration extends AbstractConfiguration
 {
-    /**
-     * [private description]
-     *
-     * @var array
-     */
-    private $values;
-
-    /**
-     * Returns configuration depending on a given type.
-     *
-     * @param  array  $configs
-     * @param  string $config_name
-     * @param  string $type
-     * @return array
-     */
-    public function __construct(array $configs, string $config_name, string $type)
-    {
-        if (false == in_array($type, ($types = ['entity', 'structure', 'repository']))) {
-            throw new \InvalidArgumentException(
-                sprintf(
-                    'Failed to retrieve configuration for a given type.'.PHP_EOL
-                    .'"%s" as type isn\'t allowed. Types allowed are {"%s"}',
-                    $type,
-                    join('", "', $types)
-                )
-            );
-        }
-
-        if (false == array_key_exists($config_name, $configs)) {
-            throw new \InvalidArgumentException(
-                sprintf(
-                    '"%s" Pommx session doesn\'t exists.'.PHP_EOL
-                    .'Existing sessions are {"%s"}',
-                    $config_name,
-                    join('", "', array_keys($configs))
-                )
-            );
-        }
-
-        $temp = $configs[$config_name][$type];
-
-        // Replace {$config_name} wildcard
-        $temp['root_directory'] = strtr(
-            $temp['psr4']['directory'], ['{$config_name}' => $this->capitalized($config_name)]
-        );
-
-        $temp['root_namespace'] = strtr(
-            $temp['psr4']['namespace'], ['{$config_name}' => $this->capitalized($config_name)]
-        );
-
-        $this->values = $temp;
-    }
-
-    /**
-     * [getValues description]
-     *
-     * @return string|null [description]
-     */
-    public function getValue(string $key): ?string
-    {
-        return $this->values[$key];
-    }
-
     /**
      * Returns path file.
      *
@@ -89,40 +28,15 @@ class Configuration
     {
         $elements = [
             // Replace {$schema} wildcard
-            $this->values['root_directory'], ['{$schema}' => $this->capitalized($schema)]
-            ($this->values['dir'] ?? null),
+            strtr(
+                $this->values['root_directory'], ['{$schema}' => $this->capitalized($schema)]
+            ),
+            ($this->values['directory'] ?? null),
             sprintf("%s%s.php", $this->capitalized($file_name), ($this->values['class_suffix'] ?? ''))
         ];
 
         return join(
-            '/',
-            array_filter(
-                $elements,
-                function ($val) {
-                    return false == empty($val);
-                }
-            )
-        );
-    }
-
-    /**
-     * Returns namespace depending on configuration.
-     *
-     * @param  string $schema
-     * @return string
-     */
-    public function getNamespace(string $schema): string
-    {
-        $elements = [
-            // Replace {$schema} wildcard
-            strtr(
-                $this->values['root_namespace'], ['{$schema}' => $this->capitalized($schema)]
-            ),
-            ($this->values['dir'] ?? null)
-        ];
-
-        return join(
-            '\\',
+            DIRECTORY_SEPARATOR,
             array_filter(
                 $elements,
                 function ($val) {
@@ -145,7 +59,7 @@ class Configuration
         $path_file = $this->getPathFile($schema, $file_name);
 
         // Retrieves file name then removes file extension
-        $short_name = (explode('.', substr(strrchr($path_file, '/'), 1)))[0];
+        $short_name = (explode('.', substr(strrchr($path_file, DIRECTORY_SEPARATOR), 1)))[0];
 
         $name = sprintf(
             '%s\\%s',
@@ -159,22 +73,5 @@ class Configuration
           'name'       => $name,
           'short_name' => $short_name
         ];
-    }
-
-    /**
-     * Return string with first letter capitalized.
-     *
-     * @param  string $string [description]
-     * @return string         [description]
-     */
-    private function capitalized(string $string): string
-    {
-        return preg_replace_callback(
-            '/_([a-z])/',
-            function ($v) {
-                return ucfirst($v[1]);
-            },
-            ucfirst($string)
-        );
     }
 }

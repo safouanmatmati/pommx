@@ -19,13 +19,12 @@ use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-use Pommx\Console\Command\Traits\InspectorPoolerAwareCommand;
-use Pommx\Console\Command\Traits\Definition;
+use Pommx\Console\Command\PommxAwareCommandInterface;
+use Pommx\Console\Command\Traits\PommxAwareCommandTrait;
 
-class GenerateSchema extends SchemaAwareCommand
+class GenerateSchema extends SchemaAwareCommand implements PommxAwareCommandInterface
 {
-    use InspectorPoolerAwareCommand;
-    use Definition;
+    use PommxAwareCommandTrait;
 
     /**
      * {@inheritdoc}
@@ -38,7 +37,7 @@ class GenerateSchema extends SchemaAwareCommand
             ->setName('pommx:generate:schema-all')
             ->setDescription('Generate structure, repository and entity file for all relations in a schema.');
 
-        $this->overrideDefinition();
+        $this->adapte();
     }
 
     /**
@@ -46,13 +45,11 @@ class GenerateSchema extends SchemaAwareCommand
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $this->addRequiredParentOptions();
+        $this->preExecute();
 
         parent::execute($input, $output);
 
-        $session = $this->mustBeModelManagerSession($this->getSession());
-
-        $relations = $session
+        $relations = $this->getSession()
             ->getInspector()
             ->getSchemaRelations($this->fetchSchemaOid());
 
@@ -70,7 +67,7 @@ class GenerateSchema extends SchemaAwareCommand
                 $command = $this->getApplication()->find('pommx:generate:relation-all');
                 $arguments = [
                     'command'     => 'pommx:generate:relation-all',
-                    'config_name' => $this->config_name,
+                    'config-name' => $this->config_name,
                     'relation'    => $relation_info['name'],
                     'schema'      => $this->schema,
                     '--force'     => $input->getOption('force')

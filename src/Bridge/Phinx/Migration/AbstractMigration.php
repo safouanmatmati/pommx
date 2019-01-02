@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace Pommx\Bridge\Phinx;
+namespace Pommx\Bridge\Phinx\Migration;
 
 use Phinx\Migration\AbstractMigration as PhinxAbstractMigration;
 use Phinx\Db\Adapter\AdapterFactory;
